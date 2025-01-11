@@ -2,6 +2,6 @@
 __pycache__/
 .env
 *.pyc
-.DS_Store"
-.Global Sourcing RFI Workflow.txt
-.Augmented_LLM_discrip.ipynb
+.DS_Store
+Global Sourcing RFI Workflow.txt
+Augmented_LLM_discrip.ipynb
