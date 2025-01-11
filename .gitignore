@@ -3,7 +3,6 @@ __pycache__/
 .env
 *.pyc
 .DS_Store
-Global Sourcing RFI Workflow.txt
 Augmented_LLM_discrip.ipynb
 venv/
-**/site-packages/**
+**/site-packages/**notebooks/.ipynb_checkpoints/
