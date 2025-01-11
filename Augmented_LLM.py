@@ -102,9 +102,6 @@ class MemoryLLM(BasicLLM):
             return f"Error: {str(e)}"
 
 
-
-
-
 class DocumentProcessor:
     """Processes documents into chunks."""
     
@@ -347,6 +344,7 @@ class RagLLM(MemoryLLM):
             
         except Exception as e:
             return f"Error: {str(e)}"
+
 
 class MarketingTools:
     """Provides marketing analytics calculations."""
