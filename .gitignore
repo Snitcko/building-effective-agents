@@ -5,3 +5,5 @@ __pycache__/
 .DS_Store
 Global Sourcing RFI Workflow.txt
 Augmented_LLM_discrip.ipynb
+venv/
+**/site-packages/**
