@@ -291,7 +291,10 @@ class RagProcessor:
 class ContentAnalyst:
     """Creates content brief from article"""
     
-    def __init__(self, api_key: str, rag_processor=None, model: str = "gpt-3.5-turbo"):
+    def __init__(self, 
+                 api_key: str, 
+                 rag_processor=None, 
+                 model: str = "gpt-4o-mini"):
         self.api_key = api_key
         self.model = model
         self.rag_processor = rag_processor
@@ -313,30 +316,87 @@ class ContentAnalyst:
                 },
                 json={
                     "model": self.model,
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "content_brief",
+                            "strict": True,
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "main_topics": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Primary topics of the content"
+                                    },
+                                    "target_audience": {
+                                        "type": "string",
+                                        "description": "Description of the target audience"
+                                    },
+                                    "key_messages": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Key messages to convey"
+                                    },
+                                    "tone_guidelines": {
+                                        "type": "string",
+                                        "description": "Tone and style guidelines"
+                                    },
+                                    "hashtags": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Recommended hashtags"
+                                    },
+                                    "constraints": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "string"
+                                        },
+                                        "description": "Platform-specific constraints"
+                                    }
+                                },
+                                "required": [
+                                    "main_topics", 
+                                    "target_audience", 
+                                    "key_messages", 
+                                    "tone_guidelines", 
+                                    "hashtags"
+                                ],
+                                "additionalProperties": False
+                            }
+                        }
+                    },
                     "messages": [
                         {
-                            "role": "system",
-                            "content": """Create a social media brief in this exact JSON format:
-                            {
-                                "main_topics": ["topic1", "topic2"],
-                                "target_audience": "description",
-                                "key_messages": ["msg1", "msg2"],
-                                "tone_guidelines": "description",
-                                "hashtags": ["#tag1", "#tag2"],
-                                "constraints": {"platform": "rules"}
-                            }"""
+                            "role": "system", 
+                            "content": f"""Create a social media brief based on the article. 
+                        Provide a JSON response with the following structure:
+                        - main_topics: array of strings
+                        - target_audience: string description
+                        - key_messages: array of key messages
+                        - tone_guidelines: string describing tone
+                        - hashtags: array of hashtags
+                        - constraints (optional): object with platform-specific rules
+
+                        Use additional context if relevant: {context}"""
                         },
                         {
-                            "role": "user",
+                            "role": "user", 
                             "content": f"Article: {article.content[:2000]}"
                         }
                     ]
                 }
             )
+            print("Full API response:")
+            print(response.text)
             
             data = response.json()
+            if 'error' in data:
+                print(f"API Error: {data['error']['message']}")
+                raise ValueError(f"API Error: {data['error']['message']}")
+            
             content = data['choices'][0]['message']['content']
-            print(f"Raw content from API: {content}") 
+            print(f"Raw content from API: {content}")
             
             result = json.loads(content)
             
@@ -346,7 +406,7 @@ class ContentAnalyst:
                 key_messages=result['key_messages'],
                 tone_guidelines=result['tone_guidelines'],
                 hashtags=result['hashtags'],
-                constraints=result['constraints'],
+                constraints=result.get('constraints', {}),
                 source_article=article
             )
             
@@ -357,7 +417,10 @@ class ContentAnalyst:
 class ContentWriter:
     """Creates post draft from brief"""
     
-    def __init__(self, api_key: str, rag_processor=None, model: str = "gpt-3.5-turbo"):
+    def __init__(self, 
+                 api_key: str, 
+                 rag_processor=None, 
+                 model: str = "gpt-4o-mini"):
         self.api_key = api_key
         self.model = model
         self.rag_processor = rag_processor
@@ -379,33 +442,45 @@ class ContentWriter:
                 },
                 json={
                     "model": self.model,
+                    "response_format": {
+                        "type": "json_object"
+                    },
                     "messages": [
                         {
-                            "role": "system",
-                            "content": "You are a social media copywriter. Create engaging content based on the brief."
+                            "role": "system", 
+                            "content": """Return a JSON with two keys:
+                            - "content": The full text of the social media post
+                            - "hashtags": An array of relevant hashtags"""
                         },
                         {
-                            "role": "user",
+                            "role": "user", 
                             "content": f"""
-                            Topics: {brief.main_topics}
-                            Audience: {brief.target_audience}
-                            Messages: {brief.key_messages}
-                            Tone: {brief.tone_guidelines}
+                            Detailed Brief:
+                            - Topics: {brief.main_topics}
+                            - Target Audience: {brief.target_audience}
+                            - Key Messages: {brief.key_messages}
+                            - Tone Guidelines: {brief.tone_guidelines}
                             
-                            Additional context: {context}
-                            
-                            Create an engaging social media post."""
+                            Create a social media post."""
                         }
                     ]
                 }
             )
             
             data = response.json()
+            if 'error' in data:
+                print(f"API Error: {data['error']['message']}")
+                raise ValueError(f"API Error: {data['error']['message']}")
+            
             content = data['choices'][0]['message']['content']
+            print(f"Raw content from API: {content}")
+            
+            print(f"result = json.loads(content):")
+            result = json.loads(content)
             
             return PostDraft(
-                content=content,
-                hashtags=brief.hashtags,
+                content=result['content'],
+                hashtags=result.get('hashtags', brief.hashtags),
                 brief=brief,
                 metadata={"timestamp": "now"}
             )
@@ -417,7 +492,9 @@ class ContentWriter:
 class ContentOptimizer:
     """Optimizes and translates post"""
     
-    def __init__(self, api_key: str, model: str = "gpt-3.5-turbo"):
+    def __init__(self, 
+                 api_key: str, 
+                 model: str = "gpt-4o-mini"):
         self.api_key = api_key
         self.model = model
         
@@ -431,45 +508,90 @@ class ContentOptimizer:
                 },
                 json={
                     "model": self.model,
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "final_post",
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "translations": {
+                                        "type": "object",
+                                        "properties": {
+                                            "en": {"type": "string"},
+                                            "ru": {"type": "string"}
+                                        },
+                                        "required": ["en", "ru"],
+                                        "additionalProperties": False
+                                    },
+                                    "engagement_metrics": {
+                                        "type": "object",
+                                        "properties": {
+                                            "expected_likes": {"type": "number"},
+                                            "expected_shares": {"type": "number"}
+                                        },
+                                        "required": ["expected_likes", "expected_shares"],
+                                        "additionalProperties": False
+                                    },
+                                    "platform_versions": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "object",
+                                            "properties": {
+                                                "text": {"type": "string"},
+                                                "type": {"type": "string"}
+                                            },
+                                            "required": ["text"],
+                                            "additionalProperties": False
+                                        }
+                                    }
+                                },
+                                "required": ["translations", "engagement_metrics"],
+                                "additionalProperties": False
+                            },
+                            "strict": True
+                        }
+                    },
                     "messages": [
                         {
-                            "role": "system",
-                            "content": """Optimize and translate this post. Return JSON in format:
-                            {
-                                "translations": {
-                                    "en": "english text",
-                                    "es": "spanish text"
-                                },
-                                "engagement_metrics": {
-                                    "expected_likes": 100,
-                                    "expected_shares": 50
-                                },
-                                "platform_versions": {
-                                    "twitter": {"text": "twitter text", "type": "tweet"},
-                                    "linkedin": {"text": "linkedin text", "type": "post"}
-                                }
-                            }"""
+                            "role": "system", 
+                            "content": """Translate and optimize the post. 
+                            Return a JSON with these details:
+                            - Full English and Russian translations
+                            - Engagement metrics (likes, shares)
+                            - Optional platform-specific versions"""
                         },
                         {
-                            "role": "user",
+                            "role": "user", 
                             "content": f"""Post: {draft.content}
                             Tone: {draft.brief.tone_guidelines}
-                            Audience: {draft.brief.target_audience}"""
+                            Audience: {draft.brief.target_audience}
+                            
+                            Provide:
+                            - Verbatim English version
+                            - Russian translation maintaining original tone
+                            - Estimated engagement metrics
+                            - Optional platform variations"""
                         }
                     ]
                 }
             )
             
             data = response.json()
+            if 'error' in data:
+                print(f"API Error: {data['error']['message']}")
+                raise ValueError(f"API Error: {data['error']['message']}")
+
             content = data['choices'][0]['message']['content']
             print(f"Raw content from API: {content}")
+            
             result = json.loads(content)
             
             return FinalPost(
                 content=result['translations'],
                 hashtags=draft.hashtags,
                 engagement_metrics=result['engagement_metrics'],
-                platform_specific=result['platform_versions']
+                platform_specific=result.get('platform_versions', {})
             )
             
         except Exception as e:
