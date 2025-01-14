@@ -13,3 +13,4 @@ def get_env_variable(var_name: str) -> str:
 OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY")
 PINECONE_API_KEY = get_env_variable("PINECONE_API_KEY")
 INDEX_NAME = get_env_variable("INDEX_NAME")
+JINA_API_KEY = get_env_variable("JINA_API_KEY")
