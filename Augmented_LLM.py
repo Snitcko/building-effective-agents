@@ -348,14 +348,14 @@ class RagLLM(MemoryLLM):
 
 class MarketingTools:
     """Provides marketing analytics calculations."""
-    
-    @staticmethod
-    def get_tool_definitions() -> List[Dict]:
-        return [{
+
+    def get_tool_definitions(self) -> List[Dict]:
+        tools = [{
             "type": "function",
             "function": {
                 "name": "calculate_romi",
                 "description": "Calculate Return on Marketing Investment (ROMI)",
+                "strict": True,
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -372,10 +372,12 @@ class MarketingTools:
                             "description": "Profit margin percentage (0-100)"
                         }
                     },
-                    "required": ["revenue", "marketing_cost", "margin_percent"]
+                    "required": ["revenue", "marketing_cost", "margin_percent"],
+                    "additionalProperties": False
                 }
             }
         }]
+        return tools
     
     @staticmethod
     def calculate_romi(revenue: float, 
