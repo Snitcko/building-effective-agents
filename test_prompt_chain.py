@@ -14,22 +14,19 @@ async def main():
 
         url = "https://www.anthropic.com/research/building-effective-agents"
         
-        # Запускаем обработку
         final_post = await pipeline.process_url(url)
-        
-        # Выводим результаты
-        print("\nГотовый пост:")
+
+        print("\nFinal post:")
         for lang, content in final_post.content.items():
-            print(f"\nЯзык {lang}:")
-            print(content[:300])  # Показываем первые 300 символов
+            print(f"\nLanguage {lang}:")
+            print(content[:300]) 
         
-        print("\nХэштеги:", final_post.hashtags)
-        print("\nПрогноз вовлечения:", final_post.engagement_metrics)
+        print("\nHashtags:", final_post.hashtags)
+        print("\nFinal:", final_post.engagement_metrics)
 
     except Exception as e:
-        print(f"Ошибка при обработке: {e}")
-
-# Запускаем асинхронную функцию
+        print(f"Error: {e}")
+        
 if __name__ == "__main__":
     asyncio.run(main())
     
